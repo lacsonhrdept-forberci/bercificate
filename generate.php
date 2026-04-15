@@ -8,7 +8,9 @@ $template = new TemplateProcessor('template.docx');
 // Helper to parse the human-readable timestamp format provided (e.g., "Month Day, Year at Time")
 $parseTimestamp = function($ts) {
     if (empty($ts)) return null;
-    return strtotime(str_replace(' at ', ' ', $ts));
+    // Replace " at " and handle the narrow non-breaking space (U+202F) often found in browser/Cloudflare timestamps
+    $cleaned = str_replace([' at ', "\xE2\x80\xAF"], [' ', ' '], $ts);
+    return strtotime($cleaned);
 };
 
 $bdayTime = $parseTimestamp($_POST['bday'] ?? '');
@@ -50,7 +52,7 @@ $template->setValue('F_AGE', $_POST['f_age'] ?? '');
 $template->setValue('F_ADDRESS', $_POST['f_address'] ?? '');
 $template->setValue('MARRIAGE DATE', $marriageTime ? date('F d, Y', $marriageTime) : '');
 $template->setValue('MARRY PLACE', $_POST['marriage_place'] ?? '');
-$template->setValue('OB_NAME', $_POST['ob_name'] ?? '');
+$template->setValue('OB_NAME', $_POST['ob_list'] ?? '');
 $template->setValue('TIME_OF_BIRTH', $bdayTime ? date('h:i A', $bdayTime) : '');
 $template->setValue('DATE_TODAY', date('F d, Y'));
 $template->setValue('FATHER', trim(($_POST['f_fname'] ?? '') . ' ' . ($_POST['f_mname'] ?? '') . ' ' . ($_POST['f_lname'] ?? '')));
