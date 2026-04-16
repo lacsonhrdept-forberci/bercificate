@@ -34,8 +34,8 @@ ENV COMPOSER_MEMORY_LIMIT=-1
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Expose port
+# Expose port (optional but fine)
 EXPOSE 10000
 
-# Start PHP built-in server
-CMD ["php", "-S", "0.0.0.0:10000", "-t", "public"]
+# Start server (Render-safe)
+CMD ["sh", "-c", "php -S 0.0.0.0:$PORT -t public"]
