@@ -1,6 +1,5 @@
 FROM php:8.2-cli
 
-
 # Install system dependencies + PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
@@ -10,8 +9,15 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
     libonig-dev \
-    && docker-php-ext-install zip gd \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    $PHPIZE_DEPS \
+    && docker-php-ext-install zip gd
+
+# Install gRPC (required by google/cloud-firestore)
+RUN pecl install grpc \
+    && docker-php-ext-enable grpc
+
+# Clean up to reduce image size
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -22,8 +28,11 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
+# Prevent memory issues in composer
+ENV COMPOSER_MEMORY_LIMIT=-1
+
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Expose port
 EXPOSE 10000
