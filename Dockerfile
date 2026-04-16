@@ -1,15 +1,16 @@
 FROM php:8.2-cli
 
-# Install required extensions
+# Install system dependencies + PHP extensions
 RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    zip \
+    git \
     unzip \
+    zip \
+    curl \
+    libzip-dev \
     libpng-dev \
     libonig-dev \
-    git \
-    curl \
-    && docker-php-ext-install zip gd
+    && docker-php-ext-install zip gd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -21,10 +22,10 @@ WORKDIR /app
 COPY . .
 
 # Install PHP dependencies
-RUN composer install
+RUN composer install --no-dev --optimize-autoloader
 
 # Expose port
 EXPOSE 10000
 
 # Start PHP built-in server
-CMD ["php", "-S", "0.0.0.0:10000"]
+CMD ["php", "-S", "0.0.0.0:10000", "-t", "public"]
