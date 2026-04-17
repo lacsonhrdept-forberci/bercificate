@@ -137,6 +137,8 @@ $template->setValue('BABY_SEX', up($infant['gender']));
 $template->setValue('BABY_BDAY', $bday?->format('d') ?? '');
 $template->setValue('BABY_BMONTH', $bday ? strtoupper($bday->format('F')) : '');
 $template->setValue('BABY_BYEAR', $bday?->format('Y') ?? '');
+$template->setValue('PREPARED_BY', up($infant['prepared_by']));
+$template->setValue('PREPARE_POSITION', up($infant['prepare_position']));
 
 /* =========================
    UPDATED FIELDS (YOUR REQUEST)
