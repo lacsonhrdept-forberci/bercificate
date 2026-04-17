@@ -10,15 +10,15 @@ if (!isset($_GET['id'])) {
 
 $infantId = $_GET['id'];
 
-$firebaseJson = json_decode(getenv('FIREBASE_SERVICE_ACCOUNT'), true);
+$firebase = getenv('FIREBASE_SERVICE_ACCOUNT');
 
-file_put_contents(
-    sys_get_temp_dir() . '/firebase.json',
-    getenv('FIREBASE_SERVICE_ACCOUNT')
-);
+if (!$firebase) {
+    die("Firebase credentials not set in Render environment variables.");
+}
+
+file_put_contents(sys_get_temp_dir() . '/firebase.json', $firebase);
 
 putenv('GOOGLE_APPLICATION_CREDENTIALS=' . sys_get_temp_dir() . '/firebase.json');
-
 $db = new FirestoreClient([
     'projectId' => 'lacson-infant-records'
 ]);
