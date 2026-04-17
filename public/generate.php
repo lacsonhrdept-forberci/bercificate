@@ -48,8 +48,7 @@ $bday = $bdayTime ? strtotime($bdayTime) : null;
 $marriageTime = isset($parent['marriage']) ? $parent['marriage']->get()->formatAsString() : null;
 $marriage = $marriageTime ? strtotime($marriageTime) : null;
 
-// 📝 Load Word Template
-$template = new TemplateProcessor('template.docx');
+$template = new TemplateProcessor(__DIR__ . '/../template.docx');
 
 // 🧩 Replace Placeholders
 $template->setValue('PROVINCE', 'Nueva Ecija');
