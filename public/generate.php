@@ -29,7 +29,47 @@ putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $firebasePath);
 /* =========================
    FIRESTORE INIT
    ========================= */
+function parseFirestoreDate($value): ?DateTimeImmutable
+{
+    try {
+        if (empty($value)) {
+            return null;
+        }
 
+        // Case 1: Firestore Timestamp object
+        if (is_object($value) && method_exists($value, 'get')) {
+            $dt = $value->get();
+
+            if ($dt instanceof DateTimeImmutable) {
+                return $dt;
+            }
+
+            if ($dt instanceof DateTime) {
+                return DateTimeImmutable::createFromMutable($dt);
+            }
+        }
+
+        // Case 2: Already DateTimeImmutable
+        if ($value instanceof DateTimeImmutable) {
+            return $value;
+        }
+
+        // Case 3: PHP DateTime
+        if ($value instanceof DateTime) {
+            return DateTimeImmutable::createFromMutable($value);
+        }
+
+        // Case 4: String date (Firestore sometimes returns this depending on setup)
+        if (is_string($value)) {
+            return new DateTimeImmutable($value);
+        }
+
+        return null;
+
+    } catch (Exception $e) {
+        return null;
+    }
+}
 $db = new FirestoreClient([
     'projectId' => 'lacson-infant-records'
 ]);
