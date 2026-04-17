@@ -186,7 +186,10 @@ $template->setValue(
 $template->setValue('MARRIAGE_DATE', $marriage ? strtoupper($marriage->format('F d, Y')) : '');
 $template->setValue('MARRY_PLACE', up($parent['marriage_place']));
 $template->setValue('OB_NAME', up($infant['ob_list']));
-$template->setValue('TIME_OF_BIRTH', $bday ? $bday->format('h:i A') : '');
+$template->setValue(
+    'TIME_OF_BIRTH',
+    $bday ? strtoupper($bday->format('g:i A')) : ''
+);
 $template->setValue('DATE_TODAY', strtoupper(date('F d, Y')));
 
 /* =========================
