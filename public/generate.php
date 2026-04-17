@@ -21,61 +21,56 @@ if (!$firebase) {
 }
 
 $firebasePath = sys_get_temp_dir() . '/firebase.json';
-
 file_put_contents($firebasePath, $firebase);
 
 putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $firebasePath);
 
 /* =========================
-   FIRESTORE INIT
+   BULLETPROOF DATE PARSER
    ========================= */
+
 function parseFirestoreDate($value): ?DateTimeImmutable
 {
     try {
-        if (empty($value)) {
-            return null;
-        }
+        if (empty($value)) return null;
 
-        // Case 1: Firestore Timestamp object
+        // Firestore Timestamp object
         if (is_object($value) && method_exists($value, 'get')) {
             $dt = $value->get();
 
-            if ($dt instanceof DateTimeImmutable) {
-                return $dt;
-            }
-
+            if ($dt instanceof DateTimeImmutable) return $dt;
             if ($dt instanceof DateTime) {
                 return DateTimeImmutable::createFromMutable($dt);
             }
         }
 
-        // Case 2: Already DateTimeImmutable
-        if ($value instanceof DateTimeImmutable) {
-            return $value;
-        }
-
-        // Case 3: PHP DateTime
+        // Already DateTime
+        if ($value instanceof DateTimeImmutable) return $value;
         if ($value instanceof DateTime) {
             return DateTimeImmutable::createFromMutable($value);
         }
 
-        // Case 4: String date (Firestore sometimes returns this depending on setup)
+        // String fallback
         if (is_string($value)) {
             return new DateTimeImmutable($value);
         }
 
         return null;
-
     } catch (Exception $e) {
         return null;
     }
 }
+
+/* =========================
+   FIRESTORE INIT
+   ========================= */
+
 $db = new FirestoreClient([
     'projectId' => 'lacson-infant-records'
 ]);
 
 /* =========================
-   FETCH INFANT RECORD
+   FETCH INFANT
    ========================= */
 
 $infantSnapshot = $db->collection('infant_rec')->document($infantId)->snapshot();
@@ -87,36 +82,36 @@ if (!$infantSnapshot->exists()) {
 $infant = $infantSnapshot->data();
 
 /* =========================
-   FETCH PARENT RECORD
+   FETCH PARENT
    ========================= */
 
 $parent = [];
 
 if (!empty($infant['mother_id'])) {
-    $parentSnapshot = $db->collection('parent_rec')->document($infant['mother_id'])->snapshot();
+    $parentSnapshot = $db->collection('parent_rec')
+        ->document($infant['mother_id'])
+        ->snapshot();
+
     if ($parentSnapshot->exists()) {
         $parent = $parentSnapshot->data();
     }
 }
 
 /* =========================
-   DATE HANDLING
+   SAFE DATE CONVERSION (FIXED)
    ========================= */
 
-$bdayTime = isset($infant['bday']) ? $infant['bday']->get()->formatAsString() : null;
-$bday = $bdayTime ? strtotime($bdayTime) : null;
-
-$marriageTime = isset($parent['marriage']) ? $parent['marriage']->get()->formatAsString() : null;
-$marriage = $marriageTime ? strtotime($marriageTime) : null;
+$bday = parseFirestoreDate($infant['bday'] ?? null);
+$marriage = parseFirestoreDate($parent['marriage'] ?? null);
 
 /* =========================
-   WORD TEMPLATE
+   TEMPLATE
    ========================= */
 
 $template = new TemplateProcessor(__DIR__ . '/../template.docx');
 
 /* =========================
-   PLACEHOLDER VALUES
+   PLACEHOLDERS
    ========================= */
 
 $template->setValue('PROVINCE', 'Nueva Ecija');
@@ -128,9 +123,9 @@ $template->setValue('BABY_MNAME', $infant['mname'] ?? '');
 $template->setValue('BABY_LNAME', $infant['lname'] ?? '');
 $template->setValue('BABY_SEX', ucfirst($infant['gender'] ?? ''));
 
-$template->setValue('BABY_BDAY', $bday ? date('d', $bday) : '');
-$template->setValue('BABY_BMONTH', $bday ? date('F', $bday) : '');
-$template->setValue('BABY_BYEAR', $bday ? date('Y', $bday) : '');
+$template->setValue('BABY_BDAY', $bday ? $bday->format('d') : '');
+$template->setValue('BABY_BMONTH', $bday ? $bday->format('F') : '');
+$template->setValue('BABY_BYEAR', $bday ? $bday->format('Y') : '');
 
 $template->setValue('DELIVERY_TYPE', ucfirst($infant['delivery'] ?? ''));
 $template->setValue('MULTI_CHILD', $infant['type_multi'] ?? '');
@@ -158,22 +153,24 @@ $template->setValue('F_OCCUPATION', $parent['f_occupation'] ?? '');
 $template->setValue('F_AGE', $parent['f_age'] ?? '');
 $template->setValue('F_ADDRESS', $parent['f_address'] ?? '');
 
-$template->setValue('MARRIAGE_DATE', $marriage ? date('F d, Y', $marriage) : '');
+$template->setValue('MARRIAGE_DATE', $marriage ? $marriage->format('F d, Y') : '');
 $template->setValue('MARRY_PLACE', $parent['marriage_place'] ?? '');
 
 $template->setValue('OB_NAME', $infant['ob_list'] ?? '');
-$template->setValue('TIME_OF_BIRTH', $bday ? date('h:i A', $bday) : '');
+$template->setValue('TIME_OF_BIRTH', $bday ? $bday->format('h:i A') : '');
 $template->setValue('DATE_TODAY', date('F d, Y'));
 
 $template->setValue(
     'FATHER',
-    trim(($parent['f_fname'] ?? '') . ' ' .
-         ($parent['f_mname'] ?? '') . ' ' .
-         ($parent['f_lname'] ?? ''))
+    trim(
+        ($parent['f_fname'] ?? '') . ' ' .
+        ($parent['f_mname'] ?? '') . ' ' .
+        ($parent['f_lname'] ?? '')
+    )
 );
 
 /* =========================
-   OUTPUT FILE
+   OUTPUT
    ========================= */
 
 $output = 'BirthCertificate.docx';
