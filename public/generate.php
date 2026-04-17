@@ -10,20 +10,34 @@ if (!isset($_GET['id'])) {
 
 $infantId = $_GET['id'];
 
+/* =========================
+   FIREBASE CREDENTIAL SETUP
+   ========================= */
+
 $firebase = getenv('FIREBASE_SERVICE_ACCOUNT');
 
 if (!$firebase) {
-    die("Firebase credentials not set in Render environment variables.");
+    die("Firebase service account not found in Render environment variables.");
 }
 
-file_put_contents(sys_get_temp_dir() . '/firebase.json', $firebase);
+$firebasePath = sys_get_temp_dir() . '/firebase.json';
 
-putenv('GOOGLE_APPLICATION_CREDENTIALS=' . sys_get_temp_dir() . '/firebase.json');
+file_put_contents($firebasePath, $firebase);
+
+putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $firebasePath);
+
+/* =========================
+   FIRESTORE INIT
+   ========================= */
+
 $db = new FirestoreClient([
     'projectId' => 'lacson-infant-records'
 ]);
 
-// 🔎 Fetch Infant Record
+/* =========================
+   FETCH INFANT RECORD
+   ========================= */
+
 $infantSnapshot = $db->collection('infant_rec')->document($infantId)->snapshot();
 
 if (!$infantSnapshot->exists()) {
@@ -32,8 +46,12 @@ if (!$infantSnapshot->exists()) {
 
 $infant = $infantSnapshot->data();
 
-// 🔎 Fetch Parent Record
+/* =========================
+   FETCH PARENT RECORD
+   ========================= */
+
 $parent = [];
+
 if (!empty($infant['mother_id'])) {
     $parentSnapshot = $db->collection('parent_rec')->document($infant['mother_id'])->snapshot();
     if ($parentSnapshot->exists()) {
@@ -41,16 +59,26 @@ if (!empty($infant['mother_id'])) {
     }
 }
 
-// 📅 Convert timestamps
+/* =========================
+   DATE HANDLING
+   ========================= */
+
 $bdayTime = isset($infant['bday']) ? $infant['bday']->get()->formatAsString() : null;
 $bday = $bdayTime ? strtotime($bdayTime) : null;
 
 $marriageTime = isset($parent['marriage']) ? $parent['marriage']->get()->formatAsString() : null;
 $marriage = $marriageTime ? strtotime($marriageTime) : null;
 
+/* =========================
+   WORD TEMPLATE
+   ========================= */
+
 $template = new TemplateProcessor(__DIR__ . '/../template.docx');
 
-// 🧩 Replace Placeholders
+/* =========================
+   PLACEHOLDER VALUES
+   ========================= */
+
 $template->setValue('PROVINCE', 'Nueva Ecija');
 $template->setValue('CITY', 'San Leonardo');
 $template->setValue('REGISTRY_NO', $infantId);
@@ -97,13 +125,17 @@ $template->setValue('OB_NAME', $infant['ob_list'] ?? '');
 $template->setValue('TIME_OF_BIRTH', $bday ? date('h:i A', $bday) : '');
 $template->setValue('DATE_TODAY', date('F d, Y'));
 
-$template->setValue('FATHER',
+$template->setValue(
+    'FATHER',
     trim(($parent['f_fname'] ?? '') . ' ' .
          ($parent['f_mname'] ?? '') . ' ' .
          ($parent['f_lname'] ?? ''))
 );
 
-// 📤 Output File
+/* =========================
+   OUTPUT FILE
+   ========================= */
+
 $output = 'BirthCertificate.docx';
 $template->saveAs($output);
 
