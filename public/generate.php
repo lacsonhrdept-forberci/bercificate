@@ -34,7 +34,6 @@ function parseFirestoreDate($value): ?DateTimeImmutable
     try {
         if (empty($value)) return null;
 
-        // Firestore Timestamp object
         if (is_object($value) && method_exists($value, 'get')) {
             $dt = $value->get();
 
@@ -44,13 +43,11 @@ function parseFirestoreDate($value): ?DateTimeImmutable
             }
         }
 
-        // Already DateTime
         if ($value instanceof DateTimeImmutable) return $value;
         if ($value instanceof DateTime) {
             return DateTimeImmutable::createFromMutable($value);
         }
 
-        // String fallback
         if (is_string($value)) {
             return new DateTimeImmutable($value);
         }
@@ -98,7 +95,7 @@ if (!empty($infant['mother_id'])) {
 }
 
 /* =========================
-   SAFE DATE CONVERSION (FIXED)
+   SAFE DATE CONVERSION
    ========================= */
 
 $bday = parseFirestoreDate($infant['bday'] ?? null);
@@ -111,61 +108,72 @@ $marriage = parseFirestoreDate($parent['marriage'] ?? null);
 $template = new TemplateProcessor(__DIR__ . '/../template.docx');
 
 /* =========================
-   PLACEHOLDERS
+   SAFE UPPERCASE HELPER
    ========================= */
 
-$template->setValue('PROVINCE', 'Nueva Ecija');
-$template->setValue('CITY', 'San Leonardo');
-$template->setValue('REGISTRY_NO', $infantId);
+function up($value)
+{
+    return strtoupper((string)($value ?? ''));
+}
 
-$template->setValue('BABY_FNAME', $infant['fname'] ?? '');
-$template->setValue('BABY_MNAME', $infant['mname'] ?? '');
-$template->setValue('BABY_LNAME', $infant['lname'] ?? '');
-$template->setValue('BABY_SEX', ucfirst($infant['gender'] ?? ''));
+/* =========================
+   PLACEHOLDERS (ALL CAPS OUTPUT)
+   ========================= */
+
+$template->setValue('PROVINCE', up('Nueva Ecija'));
+$template->setValue('CITY', up('San Leonardo'));
+$template->setValue('REGISTRY_NO', up($infantId));
+
+$template->setValue('BABY_FNAME', up($infant['fname']));
+$template->setValue('BABY_MNAME', up($infant['mname']));
+$template->setValue('BABY_LNAME', up($infant['lname']));
+$template->setValue('BABY_SEX', up($infant['gender']));
 
 $template->setValue('BABY_BDAY', $bday ? $bday->format('d') : '');
-$template->setValue('BABY_BMONTH', $bday ? $bday->format('F') : '');
+$template->setValue('BABY_BMONTH', $bday ? strtoupper($bday->format('F')) : '');
 $template->setValue('BABY_BYEAR', $bday ? $bday->format('Y') : '');
 
-$template->setValue('DELIVERY_TYPE', ucfirst($infant['delivery'] ?? ''));
-$template->setValue('MULTI_CHILD', $infant['type_multi'] ?? '');
-$template->setValue('BIRTH_ORDER', $infant['birth_order'] ?? '');
-$template->setValue('WEIGHT', $infant['weight'] ?? '');
+$template->setValue('DELIVERY_TYPE', up($infant['delivery']));
+$template->setValue('MULTI_CHILD', up($infant['type_multi']));
+$template->setValue('BIRTH_ORDER', up($infant['birth_order']));
+$template->setValue('WEIGHT', up($infant['weight']));
 
-$template->setValue('M_FNAME', $parent['m_fname'] ?? '');
-$template->setValue('M_MNAME', $parent['m_mname'] ?? '');
-$template->setValue('M_LNAME', $parent['m_lname'] ?? '');
-$template->setValue('M_CITIZENSHIP', $parent['m_citizenship'] ?? '');
-$template->setValue('M_RELIGION', $parent['m_religion'] ?? '');
-$template->setValue('C_ALIVE', $parent['child_count_all'] ?? '');
-$template->setValue('C_UVING', $parent['child_count_alive'] ?? '');
-$template->setValue('C_DEAD', $parent['child_count_dead'] ?? '');
-$template->setValue('M_OCCUPATION', $parent['m_occupation'] ?? '');
-$template->setValue('M_AGE', $parent['m_age'] ?? '');
-$template->setValue('M_ADDRESS', $parent['m_address'] ?? '');
+$template->setValue('M_FNAME', up($parent['m_fname']));
+$template->setValue('M_MNAME', up($parent['m_mname']));
+$template->setValue('M_LNAME', up($parent['m_lname']));
+$template->setValue('M_CITIZENSHIP', up($parent['m_citizenship']));
+$template->setValue('M_RELIGION', up($parent['m_religion']));
+$template->setValue('C_ALIVE', up($parent['child_count_all']));
+$template->setValue('C_LIVING', up($parent['child_count_alive']));
+$template->setValue('C_DEAD', up($parent['child_count_dead']));
+$template->setValue('M_OCCUPATION', up($parent['m_occupation']));
+$template->setValue('M_AGE', up($parent['m_age']));
+$template->setValue('M_ADDRESS', up($parent['m_address']));
 
-$template->setValue('F_FNAME', $parent['f_fname'] ?? '');
-$template->setValue('F_MNAME', $parent['f_mname'] ?? '');
-$template->setValue('F_LNAME', $parent['f_lname'] ?? '');
-$template->setValue('F_CITIZENSHIP', $parent['f_citizenship'] ?? '');
-$template->setValue('F_RELIGION', $parent['f_religion'] ?? '');
-$template->setValue('F_OCCUPATION', $parent['f_occupation'] ?? '');
-$template->setValue('F_AGE', $parent['f_age'] ?? '');
-$template->setValue('F_ADDRESS', $parent['f_address'] ?? '');
+$template->setValue('F_FNAME', up($parent['f_fname']));
+$template->setValue('F_MNAME', up($parent['f_mname']));
+$template->setValue('F_LNAME', up($parent['f_lname']));
+$template->setValue('F_CITIZENSHIP', up($parent['f_citizenship']));
+$template->setValue('F_RELIGION', up($parent['f_religion']));
+$template->setValue('F_OCCUPATION', up($parent['f_occupation']));
+$template->setValue('F_AGE', up($parent['f_age']));
+$template->setValue('F_ADDRESS', up($parent['f_address']));
 
-$template->setValue('MARRIAGE_DATE', $marriage ? $marriage->format('F d, Y') : '');
-$template->setValue('MARRY_PLACE', $parent['marriage_place'] ?? '');
+$template->setValue('MARRIAGE_DATE', $marriage ? strtoupper($marriage->format('F d, Y')) : '');
+$template->setValue('MARRY_PLACE', up($parent['marriage_place']));
 
-$template->setValue('OB_NAME', $infant['ob_list'] ?? '');
+$template->setValue('OB_NAME', up($infant['ob_list']));
 $template->setValue('TIME_OF_BIRTH', $bday ? $bday->format('h:i A') : '');
-$template->setValue('DATE_TODAY', date('F d, Y'));
+$template->setValue('DATE_TODAY', strtoupper(date('F d, Y')));
 
 $template->setValue(
     'FATHER',
-    trim(
-        ($parent['f_fname'] ?? '') . ' ' .
-        ($parent['f_mname'] ?? '') . ' ' .
-        ($parent['f_lname'] ?? '')
+    up(
+        trim(
+            ($parent['f_fname'] ?? '') . ' ' .
+            ($parent['f_mname'] ?? '') . ' ' .
+            ($parent['f_lname'] ?? '')
+        )
     )
 );
 
