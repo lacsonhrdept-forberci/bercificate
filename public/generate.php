@@ -125,7 +125,7 @@ function up($v): string
 }
 
 /* =========================
-   WEIGHT CONVERSION (KG → GRAMS)
+   WEIGHT CONVERSION (KG → GRAMS ONLY)
    ========================= */
 
 $weightKg = $infant['weight'] ?? null;
@@ -133,11 +133,11 @@ $weightKg = $infant['weight'] ?? null;
 $weightDisplay = '';
 
 if ($weightKg !== null && $weightKg !== '') {
-    $kg = (float)$weightKg;
-    $grams = $kg * 1000;
-
-    $weightDisplay = strtoupper($kg . ' KG (' . $grams . ' G)');
+    $grams = (float)$weightKg * 1000;
+    $weightDisplay = (string)$grams;
 }
+
+$template->setValue('WEIGHT', $weightDisplay);
 
 /* =========================
    TEMPLATE
