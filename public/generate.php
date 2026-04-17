@@ -14,7 +14,7 @@ if (!isset($_GET['id'])) {
 $infantId = $_GET['id'];
 
 /* =========================
-   FIREBASE SETUP (RENDER SAFE)
+   FIREBASE SETUP
    ========================= */
 $firebase = getenv('FIREBASE_SERVICE_ACCOUNT');
 
@@ -107,15 +107,13 @@ $bday = parseFirestoreDate($infant['bday'] ?? null);
 $marriage = parseFirestoreDate($parent['marriage'] ?? null);
 
 /* =========================
-   WEIGHT CONVERSION (KG → GRAMS ONLY, NO "G")
+   WEIGHT (KG → GRAMS ONLY, NO "G")
    ========================= */
 $weightKg = $infant['weight'] ?? null;
 $weightDisplay = '';
 
-if ($weightKg !== null && $weightKg !== '') {
-    if (is_numeric($weightKg)) {
-        $weightDisplay = (string) round(((float)$weightKg) * 1000);
-    }
+if (is_numeric($weightKg)) {
+    $weightDisplay = (string) round(((float)$weightKg) * 1000);
 }
 
 /* =========================
@@ -126,6 +124,7 @@ $template = new TemplateProcessor(__DIR__ . '/../template.docx');
 /* =========================
    PLACEHOLDERS
    ========================= */
+
 $template->setValue('PROVINCE', up('Nueva Ecija'));
 $template->setValue('CITY', up('San Leonardo'));
 $template->setValue('REGISTRY_NO', up($infantId));
@@ -139,13 +138,18 @@ $template->setValue('BABY_BDAY', $bday?->format('d') ?? '');
 $template->setValue('BABY_BMONTH', $bday ? strtoupper($bday->format('F')) : '');
 $template->setValue('BABY_BYEAR', $bday?->format('Y') ?? '');
 
-$template->setValue('DELIVERY_TYPE', up($infant['delivery']));
-$template->setValue('MULTI_CHILD', up($infant['type_multi']));
+/* =========================
+   UPDATED FIELDS (YOUR REQUEST)
+   ========================= */
+$template->setValue('TYPE_MULTI', up($infant['type_multi']));
+$template->setValue('MULT_ORDER', up($infant['type_multi']));
 $template->setValue('BIRTH_ORDER', up($infant['birth_order']));
 
-/* ✅ WEIGHT IN GRAMS ONLY */
 $template->setValue('WEIGHT', $weightDisplay);
 
+/* =========================
+   PARENT FIELDS
+   ========================= */
 $template->setValue('M_FNAME', up($parent['m_fname']));
 $template->setValue('M_MNAME', up($parent['m_mname']));
 $template->setValue('M_LNAME', up($parent['m_lname']));
@@ -176,6 +180,9 @@ $template->setValue(
     ))
 );
 
+/* =========================
+   EXTRA INFO
+   ========================= */
 $template->setValue('MARRIAGE_DATE', $marriage ? strtoupper($marriage->format('F d, Y')) : '');
 $template->setValue('MARRY_PLACE', up($parent['marriage_place']));
 $template->setValue('OB_NAME', up($infant['ob_list']));
