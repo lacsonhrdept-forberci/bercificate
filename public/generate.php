@@ -10,8 +10,14 @@ if (!isset($_GET['id'])) {
 
 $infantId = $_GET['id'];
 
-// 🔐 Path to your Firebase service account JSON
-putenv('GOOGLE_APPLICATION_CREDENTIALS=serviceAccountKey.json');
+$firebaseJson = json_decode(getenv('FIREBASE_SERVICE_ACCOUNT'), true);
+
+file_put_contents(
+    sys_get_temp_dir() . '/firebase.json',
+    json_encode($firebaseJson)
+);
+
+putenv('GOOGLE_APPLICATION_CREDENTIALS=' . sys_get_temp_dir() . '/firebase.json');
 
 $db = new FirestoreClient([
     'projectId' => 'lacson-infant-records'
