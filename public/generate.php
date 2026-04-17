@@ -14,7 +14,7 @@ $firebaseJson = json_decode(getenv('FIREBASE_SERVICE_ACCOUNT'), true);
 
 file_put_contents(
     sys_get_temp_dir() . '/firebase.json',
-    json_encode($firebaseJson)
+    getenv('FIREBASE_SERVICE_ACCOUNT')
 );
 
 putenv('GOOGLE_APPLICATION_CREDENTIALS=' . sys_get_temp_dir() . '/firebase.json');
