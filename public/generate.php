@@ -43,20 +43,33 @@ function parseFirestoreDate($value): ?DateTimeImmutable
     try {
         if ($value === null || $value === '') return null;
 
+        $utc = new DateTimeZone('UTC');
+        $manila = new DateTimeZone('Asia/Manila');
+
+        // Firestore Timestamp object
         if (is_object($value) && method_exists($value, 'get')) {
-            $dt = $value->get();
+            $dt = $value->get(); // Firestore gives UTC
 
-            if ($dt instanceof DateTimeImmutable) return $dt;
-            if ($dt instanceof DateTime) return DateTimeImmutable::createFromMutable($dt);
-            if ($dt instanceof DateTimeInterface) return DateTimeImmutable::createFromInterface($dt);
+            if ($dt instanceof DateTimeInterface) {
+                return (new DateTimeImmutable(
+                    $dt->format('Y-m-d H:i:s'),
+                    $utc
+                ))->setTimezone($manila);
+            }
         }
 
+        // Direct DateTime
         if ($value instanceof DateTimeInterface) {
-            return DateTimeImmutable::createFromInterface($value);
+            return (new DateTimeImmutable(
+                $value->format('Y-m-d H:i:s'),
+                $utc
+            ))->setTimezone($manila);
         }
 
+        // String fallback
         if (is_string($value)) {
-            return new DateTimeImmutable($value);
+            return (new DateTimeImmutable($value, $utc))
+                ->setTimezone($manila);
         }
 
         return null;
